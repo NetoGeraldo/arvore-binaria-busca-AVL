@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Stack;
 
 /**
  *
@@ -13,58 +14,96 @@ import java.util.Queue;
 public class ArvoreBinariaBusca<Chave extends Comparable<Chave>, Valor> implements IArvoreBinariaBusca<Chave, Valor> {
     
     private No<Chave, Valor> raiz;
-    private No<Chave, Valor> noCorrente; // responsavel por percorrer a arvore na hora de inserir
+    private No<Chave, Valor> noCorrente; // responsavel por percorrer a arvore na hora de remover
     private ArrayList<Valor> collection; // responsavel por retornar uma lista nos metodos de obter
+    public boolean desbalanceada;
 
     public ArvoreBinariaBusca() {
         this.collection = new ArrayList<>();
     }
-    
+
     @Override
     public boolean inserir(Chave chave, Valor valor) {
-        
+        Stack<No<Chave,Valor>> caminhoDaInsercao = new Stack<>(); // responsavel por armazena o caminho da insercao de um vertice
         No<Chave, Valor> novoNo = new No<>(chave, valor);
+        No<Chave, Valor> mNoCorrente = this.raiz;
+        boolean foiInserido = false;
         
-        if (this.raiz == null) {
-            this.raiz = novoNo;
-            this.noCorrente = this.raiz;
-            return true;
-        } else {
-            // A chave é menor que a chave do noCorrente
-            if (novoNo.getChave().compareTo(this.noCorrente.getChave()) < 0) {
-                
-                if (this.noCorrente.getFilhoEsquerdo() != null) {
-                    this.noCorrente = this.noCorrente.getFilhoEsquerdo();
-                    inserir(chave, valor);
-                } else {
-                    novoNo.setPai(noCorrente);
-                    noCorrente.setFilhoEsquerdo(novoNo);
-                    this.noCorrente = this.raiz;
-                }
-                
-                return true;
-                
-            // A chave é maior que a chave do noCorrente
-            } else if (novoNo.getChave().compareTo(this.noCorrente.getChave()) > 0) {
-                
-                if (this.noCorrente.getFilhoDireito() != null) {
-                    this.noCorrente = this.noCorrente.getFilhoDireito();
-                    inserir(chave, valor);
-                } else {
-                    novoNo.setPai(noCorrente);
-                    noCorrente.setFilhoDireito(novoNo);
-                    this.noCorrente = this.raiz;
-                }
-                
-                return true;
+        do {
             
-            // A chave é igual
+            if (this.raiz == null) {
+                this.raiz = novoNo;
+                foiInserido = true;
+                break;
             } else {
-                return false;
+                
+                caminhoDaInsercao.add(mNoCorrente);
+                
+                // chave é menor que a chave do noCorrente
+                if (novoNo.getChave().compareTo(mNoCorrente.getChave()) < 0) {
+                    
+                    if (mNoCorrente.getFatorDeBalanceamento() < 0) { // mais pesado na esquerda
+                        desbalanceada = true;
+                    } else if(mNoCorrente.getFatorDeBalanceamento() > 0) { // mais pesado na direita
+                        desbalanceada = false;
+                    }
+                    
+                    if (mNoCorrente.getFilhoEsquerdo() == null) {
+                        novoNo.setPai(mNoCorrente);
+                        mNoCorrente.setFilhoEsquerdo(novoNo);
+                        foiInserido = true;
+                        break;
+                    } else {
+                        mNoCorrente = mNoCorrente.getFilhoEsquerdo();
+                    }
+                    
+                // chave é maior que a chave do noCorrente
+                } else if (novoNo.getChave().compareTo(mNoCorrente.getChave()) > 0) {
+                    
+                    if (mNoCorrente.getFatorDeBalanceamento() < 0) { // mais pesado na esquerda
+                        desbalanceada = false;
+                    } else if(mNoCorrente.getFatorDeBalanceamento() > 0) { // mais pesado na direita
+                        desbalanceada = true;
+                    }
+                    
+                    if (mNoCorrente.getFilhoDireito() == null) {
+                        novoNo.setPai(mNoCorrente);
+                        mNoCorrente.setFilhoDireito(novoNo);
+                        foiInserido = true;
+                        break;
+                    } else {
+                        mNoCorrente = mNoCorrente.getFilhoDireito();
+                    }
+                    
+                // chave é igual a chave do noCorrente
+                } else {
+                    foiInserido = false;
+                }
+            }
+            
+        } while(true);
+        
+        for (No<Chave, Valor> noDoCaminho : caminhoDaInsercao) {
+            this.atualizarFatorDeBalanceamento(noDoCaminho);
+        }
+        
+        return foiInserido;
+        
+    }
+    
+    private No<Chave,Valor> getPivo(Stack<No<Chave,Valor>> caminhoDaInsercao) {
+        
+        while (!caminhoDaInsercao.isEmpty()) {            
+            
+            if (caminhoDaInsercao.lastElement().getFatorDeBalanceamento() != 0) {
+                return caminhoDaInsercao.lastElement();
+            } else {
+                caminhoDaInsercao.pop();
             }
             
         }
         
+        return null;
     }
     
     @Override
@@ -220,6 +259,29 @@ public class ArvoreBinariaBusca<Chave extends Comparable<Chave>, Valor> implemen
             return noRetorno.getValor();
         }
         
+    }
+    
+    private int getAltura(No<Chave,Valor> no) {
+        int alturaNoDireito, alturaNoEsquerdo;
+        if (no == null) {
+            return -1;
+        } else {
+            alturaNoDireito = this.getAltura(no.getFilhoDireito());
+            alturaNoEsquerdo = this.getAltura(no.getFilhoEsquerdo());
+            if (alturaNoDireito > alturaNoEsquerdo) {
+                return alturaNoDireito + 1;
+            } else {
+                return alturaNoEsquerdo + 1;
+            }
+        }
+        
+    }
+    
+    private int atualizarFatorDeBalanceamento(No<Chave, Valor> no) {
+        int fatorDeBalanceamento = this.getAltura(no.getFilhoDireito()) - this.getAltura(no.getFilhoEsquerdo());
+        no.setFatorDeBalanceamento(fatorDeBalanceamento);
+        
+        return fatorDeBalanceamento;
     }
     
     public ArrayList<Valor> navegacaoLargura() {

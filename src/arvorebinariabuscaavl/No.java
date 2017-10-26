@@ -11,6 +11,7 @@ public class No<Chave extends Comparable<Chave>, Valor> {
     private No<Chave, Valor> pai;
     private No<Chave, Valor> filhoEsquerdo;
     private No<Chave, Valor> filhoDireito;
+    private int fatorDeBalanceamento;
 
     public No() {   }
     
@@ -58,9 +59,15 @@ public class No<Chave extends Comparable<Chave>, Valor> {
     public void setFilhoDireito(No<Chave, Valor> filhoDireito) {
         this.filhoDireito = filhoDireito;
     }
-    
-    
 
+    public int getFatorDeBalanceamento() {
+        return fatorDeBalanceamento;
+    }
+
+    public void setFatorDeBalanceamento(int fatorDeBalanceamento) {
+        this.fatorDeBalanceamento = fatorDeBalanceamento;
+    }
+    
     
     
 }
